@@ -1,0 +1,47 @@
+.pacientes-form {
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.pacientes-form h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--blue-dark);
+  margin-bottom: 20px;
+}
+.pacientes-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 24px;
+}
+.pacientes-form-grid .form-group:last-child { grid-column: 1 / -1; }
+.form-actions {
+  display: flex;
+  gap: 12px;
+  grid-column: 1 / -1;
+  margin-top: 8px;
+}
+
+.pacientes-search {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--gray-100);
+}
+.search-input {
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 14px;
+  width: 300px;
+  outline: none;
+  transition: var(--transition);
+}
+.search-input:focus {
+  border-color: var(--blue-light);
+  box-shadow: 0 0 0 3px rgba(74,144,217,0.15);
+}
+.pacientes-count { font-size: 13px; color: var(--gray-400); }
+
+.row-actions { display: flex; gap: 8px; }
+.btn-sm { padding: 5px 10px; font-size: 12px; }

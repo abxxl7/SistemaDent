@@ -1,0 +1,64 @@
+.doctores-form {
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.doctores-form h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--blue-dark);
+  margin-bottom: 20px;
+}
+.doctores-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 24px;
+}
+
+.agenda-panel {
+  padding: 20px 24px;
+  margin-bottom: 24px;
+}
+.agenda-panel h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--blue-dark);
+  margin-bottom: 14px;
+}
+.agenda-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.agenda-date {
+  padding: 8px 12px;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: var(--transition);
+}
+.agenda-date:focus {
+  border-color: var(--blue-light);
+  box-shadow: 0 0 0 3px rgba(74,144,217,0.15);
+}
+.agenda-hint {
+  font-size: 13px;
+  color: var(--gray-400);
+  font-style: italic;
+}
+.agenda-empty {
+  font-size: 13px;
+  color: var(--gray-400);
+  padding: 12px 0;
+}
+
+.v2-note {
+  margin-top: 16px;
+  padding: 10px 16px;
+  background: var(--blue-soft);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--blue-dark);
+  border-left: 4px solid var(--blue-mid);
+}

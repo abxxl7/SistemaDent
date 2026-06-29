@@ -1,9 +1,14 @@
+
 # Backend
-Backend/venv/
-Backend/__pycache__/
-Backend/*.pyc
-Backend/.env
+SistemaDent_V1/Backend/venv/
+SistemaDent_V1/Backend/.env
+SistemaDent_V2/Backend/venv/
+SistemaDent_V2/Backend/.env
 
 # Frontend
-Frontend/node_modules/
-Frontend/dist/
+SistemaDent_V1/Frontend/node_modules/
+SistemaDent_V2/Frontend/node_modules/
+
+# Python
+__pycache__/
+*.pyc
