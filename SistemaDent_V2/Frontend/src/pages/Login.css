@@ -14,7 +14,15 @@
 }
 
 .login-brand { margin-bottom: 48px; }
-.login-brand-icon { font-size: 48px; display: block; margin-bottom: 16px; }
+.login-brand-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px; height: 56px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.12);
+  margin-bottom: 20px;
+}
 .login-brand h1 { font-size: 36px; font-weight: 700; margin-bottom: 8px; }
 .login-brand p  { font-size: 16px; opacity: 0.75; }
 

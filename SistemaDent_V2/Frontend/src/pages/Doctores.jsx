@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Plus, X, CalendarDays, Pencil, Trash2, Search } from 'lucide-react';
 import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import './Doctores.css';
 
 const emptyForm = { nombre: '', especialidad: '', email: '' };
@@ -8,6 +9,7 @@ const emptyForm = { nombre: '', especialidad: '', email: '' };
 export default function Doctores() {
   const { user }                  = useAuth();
   const [doctores, setDoctores]   = useState([]);
+  const [pacientes, setPacientes] = useState([]);
   const [form, setForm]           = useState(emptyForm);
   const [editId, setEditId]       = useState(null);
   const [showForm, setShowForm]   = useState(false);
@@ -16,8 +18,12 @@ export default function Doctores() {
   const [search, setSearch]       = useState('');
   const [agenda, setAgenda]       = useState({ doctorId: null, fecha: '', citas: [] });
 
-  const load = () => api.get('/doctores').then(r => setDoctores(r.data)).catch(() => {});
+  const load = () => Promise.all([api.get('/doctores'), api.get('/pacientes')])
+    .then(([d, p]) => { setDoctores(d.data); setPacientes(p.data); })
+    .catch(() => setError('No se pudo cargar la lista de doctores. Verificá tu conexión e intentá de nuevo.'));
   useEffect(() => { load(); }, []);
+
+  const getNombrePaciente = (id) => pacientes.find(p => p.id === id)?.nombre || `ID ${id}`;
 
   const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -78,7 +84,7 @@ export default function Doctores() {
             setShowForm(!showForm); setEditId(null); setForm(emptyForm);
             setError(''); setSuccess('');
           }}>
-            {showForm ? '✕ Cancelar' : '+ Nuevo doctor'}
+            {showForm ? <><X size={16} /> Cancelar</> : <><Plus size={16} /> Nuevo doctor</>}
           </button>
         )}
       </div>
@@ -112,7 +118,7 @@ export default function Doctores() {
 
       {/* Panel de agenda */}
       <div className="card agenda-panel">
-        <h3>📅 Consultar agenda del doctor</h3>
+        <h3><CalendarDays size={16} /> Consultar agenda del doctor</h3>
         <div className="agenda-controls">
           <input
             type="date"
@@ -131,7 +137,7 @@ export default function Doctores() {
               <thead>
                 <tr>
                   <th>Hora</th>
-                  <th>Paciente ID</th>
+                  <th>Paciente</th>
                   <th>Estado</th>
                   <th>Notas</th>
                 </tr>
@@ -140,7 +146,7 @@ export default function Doctores() {
                 {agenda.citas.map(c => (
                   <tr key={c.id}>
                     <td><strong>{c.hora}</strong></td>
-                    <td>{c.paciente_id}</td>
+                    <td>{getNombrePaciente(c.paciente_id)}</td>
                     <td><span className={`badge ${c.estado}`}>{c.estado}</span></td>
                     <td>{c.notas || '—'}</td>
                   </tr>
@@ -153,12 +159,15 @@ export default function Doctores() {
 
       <div className="card">
         <div className="pacientes-search">
-          <input
-            placeholder="🔍  Buscar por nombre o especialidad..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="search-input"
-          />
+          <div className="search-input-wrap">
+            <Search size={16} className="search-input-icon" />
+            <input
+              placeholder="Buscar por nombre o especialidad..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="search-input"
+            />
+          </div>
           <span className="pacientes-count">{filtered.length} doctor{filtered.length !== 1 ? 'es' : ''}</span>
         </div>
         <div className="table-wrapper">
@@ -183,11 +192,11 @@ export default function Doctores() {
                   <td><span className={`badge ${d.activo ? 'confirmada' : 'cancelada'}`}>{d.activo ? 'Activo' : 'Inactivo'}</span></td>
                   <td>
                     <div className="row-actions">
-                      <button className="btn btn-ghost btn-sm" onClick={() => verAgenda(d.id)}>📅 Ver agenda</button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => verAgenda(d.id)}><CalendarDays size={14} /> Ver agenda</button>
                       {isAdmin && (
                         <>
-                          <button className="btn btn-ghost btn-sm" onClick={() => handleEdit(d)}>✏️ Editar</button>
-                          <button className="btn btn-danger btn-sm" onClick={() => handleDelete(d.id)}>🗑️</button>
+                          <button className="btn btn-ghost btn-sm" onClick={() => handleEdit(d)}><Pencil size={14} /> Editar</button>
+                          <button className="btn btn-danger btn-sm" onClick={() => handleDelete(d.id)}><Trash2 size={14} /></button>
                         </>
                       )}
                     </div>

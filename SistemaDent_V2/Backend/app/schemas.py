@@ -1,19 +1,31 @@
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional
-from datetime import date, time
+from datetime import date, time, datetime, timedelta
 from app.models import EstadoCita, RolUsuario, TipoSangre
 
 # Horario laboral
 HORA_INICIO = time(8, 0)   # 08:00
 HORA_FIN    = time(18, 0)  # 18:00
+DURACION_TURNO_MIN = 45    # Duración fija de cada turno odontológico
+
+def _generar_slots(inicio: time, fin: time, duracion_min: int) -> list[time]:
+    slots = []
+    actual = datetime.combine(date.today(), inicio)
+    while actual.time() < fin:
+        slots.append(actual.time())
+        actual += timedelta(minutes=duracion_min)
+    return slots
+
+# Horarios de turno permitidos: 08:00, 08:45, 09:30, ... 17:45
+SLOTS_VALIDOS = _generar_slots(HORA_INICIO, HORA_FIN, DURACION_TURNO_MIN)
 
 # ──────────────────────────────────────────────
 # USUARIO
 # ──────────────────────────────────────────────
 class UsuarioCreate(BaseModel):
-    nombre:   str
+    nombre:   str = Field(min_length=1)
     email:    EmailStr
-    password: str
+    password: str = Field(min_length=6, max_length=72)
     rol:      RolUsuario
 
 class UsuarioOut(BaseModel):
@@ -43,19 +55,19 @@ class RefreshTokenSchema(BaseModel):
 # V2: Agrega dirección y tipo de sangre
 # ──────────────────────────────────────────────
 class PacienteCreate(BaseModel):
-    nombre:         str
-    documento:      str
-    telefono:       str
-    email:          Optional[str] = None
+    nombre:         str = Field(min_length=1)
+    documento:      str = Field(min_length=1)
+    telefono:       str = Field(min_length=1)
+    email:          Optional[EmailStr] = None
     fecha_registro: date
     direccion:      Optional[str] = None
     tipo_sangre:    Optional[TipoSangre] = None
 
 class PacienteUpdate(BaseModel):
     # V2: Sin eliminación — solo actualización de datos
-    nombre:      str
-    telefono:    str
-    email:       Optional[str] = None
+    nombre:      str = Field(min_length=1)
+    telefono:    str = Field(min_length=1)
+    email:       Optional[EmailStr] = None
     direccion:   Optional[str] = None
     tipo_sangre: Optional[TipoSangre] = None
 
@@ -76,8 +88,8 @@ class PacienteOut(BaseModel):
 # DOCTOR
 # ──────────────────────────────────────────────
 class DoctorCreate(BaseModel):
-    nombre:      str
-    especialidad: str
+    nombre:      str = Field(min_length=1)
+    especialidad: str = Field(min_length=1)
     email:       EmailStr
 
 class DoctorOut(DoctorCreate):
@@ -100,9 +112,12 @@ class CitaCreate(BaseModel):
 
     @field_validator('hora')
     @classmethod
-    def validar_horario_laboral(cls, v):
-        if v < HORA_INICIO or v >= HORA_FIN:
-            raise ValueError('La hora debe estar dentro del horario laboral (08:00 - 18:00)')
+    def validar_slot_horario(cls, v):
+        if v not in SLOTS_VALIDOS:
+            horarios = ', '.join(t.strftime('%H:%M') for t in SLOTS_VALIDOS)
+            raise ValueError(
+                f'La hora debe coincidir con uno de los turnos disponibles de {DURACION_TURNO_MIN} minutos: {horarios}'
+            )
         return v
 
 class CitaUpdate(BaseModel):

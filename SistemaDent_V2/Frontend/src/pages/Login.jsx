@@ -1,7 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { Stethoscope, CircleCheck } from 'lucide-react';
+import { useAuth } from '../context/useAuth';
 import './Login.css';
+
+const FEATURES = [
+  'Agenda inteligente de citas',
+  'Panel del doctor en tiempo real',
+  'Control de estados de cita',
+  'Gestión completa de pacientes',
+];
 
 export default function Login() {
   const { login } = useAuth();
@@ -18,8 +26,14 @@ export default function Login() {
     try {
       await login(form.email, form.password);
       navigate('/dashboard');
-    } catch {
-      setError('Credenciales incorrectas. Verificá tu email y contraseña.');
+    } catch (err) {
+      if (!err.response) {
+        setError('No se pudo conectar con el servidor. Verificá tu conexión e intentá de nuevo.');
+      } else if (err.response.status === 401) {
+        setError('Credenciales incorrectas. Verificá tu email y contraseña.');
+      } else {
+        setError(err.response.data?.detail || 'Ocurrió un error al iniciar sesión. Intentá de nuevo.');
+      }
     } finally {
       setLoading(false);
     }
@@ -29,15 +43,14 @@ export default function Login() {
     <div className="login-page">
       <div className="login-left">
         <div className="login-brand">
-          <span className="login-brand-icon">🦷</span>
+          <span className="login-brand-icon"><Stethoscope size={28} strokeWidth={2} /></span>
           <h1>SistemaDent</h1>
           <p>Gestión de citas odontológicas</p>
         </div>
         <ul className="login-features">
-          <li>✓ Agenda inteligente de citas</li>
-          <li>✓ Panel del doctor en tiempo real</li>
-          <li>✓ Control de estados de cita</li>
-          <li>✓ Gestión completa de pacientes</li>
+          {FEATURES.map(f => (
+            <li key={f}><CircleCheck size={18} strokeWidth={2} /> {f}</li>
+          ))}
         </ul>
       </div>
 

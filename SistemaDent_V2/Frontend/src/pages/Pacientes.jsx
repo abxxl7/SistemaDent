@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Plus, X, Search, Pencil, Lock } from 'lucide-react';
 import api from '../services/api';
 import './Pacientes.css';
 
@@ -23,7 +24,8 @@ export default function Pacientes() {
   const [success, setSuccess]     = useState('');
   const [search, setSearch]       = useState('');
 
-  const load = () => api.get('/pacientes').then(r => setPacientes(r.data)).catch(() => {});
+  const load = () => api.get('/pacientes').then(r => setPacientes(r.data))
+    .catch(() => setError('No se pudo cargar la lista de pacientes. Verificá tu conexión e intentá de nuevo.'));
   useEffect(() => { load(); }, []);
 
   const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
@@ -81,7 +83,7 @@ export default function Pacientes() {
           setShowForm(!showForm); setEditId(null); setForm(emptyForm);
           setError(''); setSuccess('');
         }}>
-          {showForm ? '✕ Cancelar' : '+ Nuevo paciente'}
+          {showForm ? <><X size={16} /> Cancelar</> : <><Plus size={16} /> Nuevo paciente</>}
         </button>
       </div>
 
@@ -135,12 +137,15 @@ export default function Pacientes() {
 
       <div className="card">
         <div className="pacientes-search">
-          <input
-            placeholder="🔍  Buscar por nombre o documento..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="search-input"
-          />
+          <div className="search-input-wrap">
+            <Search size={16} className="search-input-icon" />
+            <input
+              placeholder="Buscar por nombre o documento..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="search-input"
+            />
+          </div>
           <span className="pacientes-count">{filtered.length} paciente{filtered.length !== 1 ? 's' : ''}</span>
         </div>
         <div className="table-wrapper">
@@ -171,7 +176,7 @@ export default function Pacientes() {
                   </td>
                   <td>{p.email || '—'}</td>
                   <td>
-                    <button className="btn btn-ghost btn-sm" onClick={() => handleEdit(p)}>✏️ Editar</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => handleEdit(p)}><Pencil size={14} /> Editar</button>
                   </td>
                 </tr>
               ))}
@@ -181,7 +186,7 @@ export default function Pacientes() {
       </div>
 
       <div className="v2-note">
-        🔒 En esta versión los registros de pacientes son permanentes para preservar el historial médico.
+        <Lock size={14} /> En esta versión los registros de pacientes son permanentes para preservar el historial médico.
       </div>
     </div>
   );

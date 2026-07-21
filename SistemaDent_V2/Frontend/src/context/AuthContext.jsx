@@ -1,22 +1,27 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../services/api';
-
-const AuthContext = createContext(null);
+import { AuthContext } from './authContext';
 
 export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Si no hay token guardado, no hay nada que verificar: arranca sin loading.
+  const [loading, setLoading] = useState(() => !!localStorage.getItem('access_token'));
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
-    if (token) {
-      api.get('/usuarios/me')
-        .then(({ data }) => setUser(data))
-        .catch(() => { localStorage.clear(); setUser(null); })
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
+    if (!token) return;
+
+    api.get('/usuarios/me')
+      .then(({ data }) => setUser(data))
+      .catch((err) => {
+        // Solo cerramos la sesión si el token es inválido/expiró (401).
+        // Un error de red o el backend caído no debe desloguear al usuario.
+        if (err.response?.status === 401) {
+          localStorage.clear();
+          setUser(null);
+        }
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const login = async (email, password) => {
@@ -39,5 +44,3 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   );
 }
-
-export const useAuth = () => useContext(AuthContext);

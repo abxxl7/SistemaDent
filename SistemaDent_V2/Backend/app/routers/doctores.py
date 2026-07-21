@@ -68,6 +68,14 @@ def eliminar_doctor(
     doctor = db.query(models.Doctor).filter(models.Doctor.id == doctor_id).first()
     if not doctor:
         raise HTTPException(status_code=404, detail="Doctor no encontrado")
+
+    tiene_citas = db.query(models.Cita).filter(models.Cita.doctor_id == doctor_id).first()
+    if tiene_citas:
+        raise HTTPException(
+            status_code=400,
+            detail="Este doctor tiene citas asociadas (activas o pasadas) y no se puede eliminar."
+        )
+
     db.delete(doctor)
     db.commit()
 

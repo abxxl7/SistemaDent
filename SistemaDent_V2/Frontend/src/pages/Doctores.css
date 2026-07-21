@@ -19,6 +19,9 @@
   margin-bottom: 24px;
 }
 .agenda-panel h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 15px;
   font-weight: 600;
   color: var(--blue-dark);
@@ -54,6 +57,9 @@
 }
 
 .v2-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-top: 16px;
   padding: 10px 16px;
   background: var(--blue-soft);
@@ -62,3 +68,4 @@
   color: var(--blue-dark);
   border-left: 4px solid var(--blue-mid);
 }
+.v2-note svg { flex-shrink: 0; }

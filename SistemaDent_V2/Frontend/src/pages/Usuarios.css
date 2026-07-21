@@ -1,0 +1,17 @@
+.usuarios-form {
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.usuarios-form h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--blue-dark);
+  margin-bottom: 20px;
+}
+.usuarios-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 24px;
+}
+
+.badge-capitalize { text-transform: capitalize; }

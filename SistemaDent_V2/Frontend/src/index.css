@@ -21,10 +21,19 @@
   --shadow-sm:    0 1px 3px rgba(0,0,0,0.08);
   --shadow-md:    0 4px 16px rgba(0,0,0,0.10);
   --shadow-lg:    0 8px 32px rgba(0,0,0,0.13);
-  --transition:   all 0.2s ease;
+  --transition:       background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  --transition-move:  transform 0.15s ease, opacity 0.15s ease;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
 
 body {
   font-family: 'Inter', sans-serif;
@@ -66,8 +75,9 @@ input, select, textarea { font-family: inherit; }
   font-size: 14px;
   font-weight: 500;
   border: none;
-  transition: var(--transition);
+  transition: var(--transition), var(--transition-move);
 }
+.btn:active { transform: scale(0.97); }
 .btn-primary   { background: var(--blue-mid); color: var(--white); }
 .btn-primary:hover { background: var(--blue-dark); }
 .btn-danger    { background: var(--danger); color: var(--white); }
@@ -151,6 +161,7 @@ tbody tr {
   transition: var(--transition);
 }
 tbody tr:hover { background: var(--blue-soft); }
+tbody tr.row-flash { background: var(--blue-soft); }
 tbody td {
   padding: 13px 16px;
   font-size: 14px;

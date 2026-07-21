@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react';
+import { Plus, X, Clock, Trash2 } from 'lucide-react';
 import api from '../services/api';
 import './Citas.css';
 
 const emptyForm = { paciente_id: '', doctor_id: '', fecha: '', hora: '', notas: '' };
+
+// Turnos fijos de 45 min: 08:00, 08:45, 09:30 ... 17:45
+const SLOTS_HORARIO = [
+  '08:00', '08:45', '09:30', '10:15', '11:00', '11:45', '12:30',
+  '13:15', '14:00', '14:45', '15:30', '16:15', '17:00', '17:45',
+];
 
 // Transiciones válidas por estado
 const TRANSICIONES = {
@@ -21,12 +28,13 @@ export default function Citas() {
   const [error, setError]         = useState('');
   const [success, setSuccess]     = useState('');
   const [filter, setFilter]       = useState('todos');
+  const [flashId, setFlashId]     = useState(null);
 
   const load = () => Promise.all([
     api.get('/citas'), api.get('/pacientes'), api.get('/doctores')
   ]).then(([c, p, d]) => {
     setCitas(c.data); setPacientes(p.data); setDoctores(d.data);
-  }).catch(() => {});
+  }).catch(() => setError('No se pudo cargar la lista de citas. Verificá tu conexión e intentá de nuevo.'));
 
   useEffect(() => { load(); }, []);
 
@@ -34,15 +42,6 @@ export default function Citas() {
 
   const handleSubmit = async e => {
     e.preventDefault(); setError(''); setSuccess('');
-
-    // Validación de horario en frontend
-    if (form.hora) {
-      const hora = parseInt(form.hora.split(':')[0]);
-      if (hora < 8 || hora >= 18) {
-        setError('La cita debe agendarse dentro del horario laboral (08:00 - 18:00).');
-        return;
-      }
-    }
 
     try {
       await api.post('/citas', {
@@ -68,6 +67,8 @@ export default function Citas() {
     try {
       await api.put(`/citas/${id}`, { estado: nuevoEstado });
       load();
+      setFlashId(id);
+      setTimeout(() => setFlashId(null), 1000);
     } catch (err) {
       alert(err.response?.data?.detail || 'Error al actualizar el estado.');
     }
@@ -75,7 +76,12 @@ export default function Citas() {
 
   const handleDelete = async id => {
     if (!confirm('¿Eliminar esta cita?')) return;
-    await api.delete(`/citas/${id}`); load();
+    try {
+      await api.delete(`/citas/${id}`);
+      load();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Error al eliminar la cita.');
+    }
   };
 
   const getNombre = (lista, id) => lista.find(x => x.id === id)?.nombre || `ID ${id}`;
@@ -89,7 +95,7 @@ export default function Citas() {
         <button className="btn btn-primary" onClick={() => {
           setShowForm(!showForm); setError(''); setSuccess('');
         }}>
-          {showForm ? '✕ Cancelar' : '+ Nueva cita'}
+          {showForm ? <><X size={16} /> Cancelar</> : <><Plus size={16} /> Nueva cita</>}
         </button>
       </div>
 
@@ -100,7 +106,7 @@ export default function Citas() {
         <div className="card citas-form">
           <h3>Agendar nueva cita</h3>
           <div className="horario-info">
-            🕐 Horario laboral: 08:00 — 18:00 · Máximo 9 citas por doctor por día
+            <Clock size={14} /> Horario laboral: 08:00 — 18:00 · Turnos de 45 min · Máximo 9 citas por doctor por día
           </div>
           <form onSubmit={handleSubmit} className="citas-form-grid">
             <div className="form-group">
@@ -122,8 +128,11 @@ export default function Citas() {
               <input name="fecha" type="date" value={form.fecha} onChange={handleChange} required />
             </div>
             <div className="form-group">
-              <label>Hora * (08:00 - 18:00)</label>
-              <input name="hora" type="time" value={form.hora} onChange={handleChange} required min="08:00" max="17:59" />
+              <label>Hora * (turnos de 45 min)</label>
+              <select name="hora" value={form.hora} onChange={handleChange} required>
+                <option value="">— Seleccionar horario —</option>
+                {SLOTS_HORARIO.map(h => <option key={h} value={h}>{h}</option>)}
+              </select>
             </div>
             <div className="form-group full-width">
               <label>Notas</label>
@@ -164,7 +173,7 @@ export default function Citas() {
               {filtered.length === 0 ? (
                 <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--gray-400)', padding: '32px' }}>No hay citas.</td></tr>
               ) : filtered.map(c => (
-                <tr key={c.id}>
+                <tr key={c.id} className={flashId === c.id ? 'row-flash' : ''}>
                   <td>{getNombre(pacientes, c.paciente_id)}</td>
                   <td>{getNombre(doctores, c.doctor_id)}</td>
                   <td>{c.fecha}</td>
@@ -183,7 +192,7 @@ export default function Citas() {
                           <option key={t} value={t}>{t}</option>
                         ))}
                       </select>
-                      <button className="btn btn-danger btn-sm" onClick={() => handleDelete(c.id)}>🗑️</button>
+                      <button className="btn btn-danger btn-sm" onClick={() => handleDelete(c.id)}><Trash2 size={14} /></button>
                     </div>
                   </td>
                 </tr>

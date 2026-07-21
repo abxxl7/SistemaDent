@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
 import { Navigate } from 'react-router-dom';
+import { Plus, X } from 'lucide-react';
+import api from '../services/api';
+import { useAuth } from '../context/useAuth';
+import './Usuarios.css';
 
 const emptyForm = { nombre: '', email: '', password: '', rol: 'recepcionista' };
 
@@ -12,11 +14,15 @@ export default function Usuarios() {
   const [showForm, setShowForm] = useState(false);
   const [error, setError]       = useState('');
   const [success, setSuccess]   = useState('');
+  const isAdmin = user?.rol === 'admin';
 
-  if (user?.rol !== 'admin') return <Navigate to="/dashboard" replace />;
+  const load = () => api.get('/usuarios').then(r => setUsuarios(r.data))
+    .catch(() => setError('No se pudo cargar la lista de usuarios. Verificá tu conexión e intentá de nuevo.'));
 
-  const load = () => api.get('/usuarios').then(r => setUsuarios(r.data)).catch(() => {});
-  useEffect(() => { load(); }, []);
+  // El hook se llama siempre (regla de hooks): solo el fetch queda condicionado al rol.
+  useEffect(() => { if (isAdmin) load(); }, [isAdmin]);
+
+  if (!isAdmin) return <Navigate to="/dashboard" replace />;
 
   const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -36,7 +42,7 @@ export default function Usuarios() {
       <div className="page-header">
         <h1>Gestión de Usuarios</h1>
         <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
-          {showForm ? '✕ Cancelar' : '+ Nuevo usuario'}
+          {showForm ? <><X size={16} /> Cancelar</> : <><Plus size={16} /> Nuevo usuario</>}
         </button>
       </div>
 
@@ -44,9 +50,9 @@ export default function Usuarios() {
       {success && <div className="success-msg">{success}</div>}
 
       {showForm && (
-        <div className="card" style={{ padding: 24, marginBottom: 24 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--blue-dark)', marginBottom: 20 }}>Registrar nuevo usuario</h3>
-          <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
+        <div className="card usuarios-form">
+          <h3>Registrar nuevo usuario</h3>
+          <form onSubmit={handleSubmit} className="usuarios-form-grid">
             <div className="form-group">
               <label>Nombre completo</label>
               <input name="nombre" value={form.nombre} onChange={handleChange} required placeholder="Nombre del usuario" />
@@ -67,7 +73,7 @@ export default function Usuarios() {
                 <option value="admin">Administrador</option>
               </select>
             </div>
-            <div style={{ display: 'flex', gap: 12, gridColumn: '1 / -1', marginTop: 8 }}>
+            <div className="form-actions">
               <button type="submit" className="btn btn-primary">Registrar</button>
               <button type="button" className="btn btn-ghost" onClick={() => setShowForm(false)}>Cancelar</button>
             </div>
@@ -91,7 +97,7 @@ export default function Usuarios() {
                 <tr key={u.id}>
                   <td><strong>{u.nombre}</strong></td>
                   <td>{u.email}</td>
-                  <td><span className="badge confirmada" style={{ textTransform: 'capitalize' }}>{u.rol}</span></td>
+                  <td><span className="badge confirmada badge-capitalize">{u.rol}</span></td>
                   <td><span className={`badge ${u.activo ? 'confirmada' : 'cancelada'}`}>{u.activo ? 'Activo' : 'Inactivo'}</span></td>
                 </tr>
               ))}
