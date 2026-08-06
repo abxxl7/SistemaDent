@@ -13,7 +13,10 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5174"],  # Puerto Vite para V2
+    allow_origins=[
+        "http://localhost:5174",
+        "https://sistemadent.vercel.app",
+    ],  # Puerto Vite para V2
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
