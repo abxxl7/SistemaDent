@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8001',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8001',
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -23,7 +23,7 @@ api.interceptors.response.use(
         const refresh_token = localStorage.getItem('refresh_token');
         if (!refresh_token) throw new Error('Sin refresh token');
 
-        const { data } = await axios.post(`${api.defaults.baseURL}/usuarios/refresh`, { refresh_token });
+        const { data } = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:8001'}/usuarios/refresh`, { refresh_token });
         localStorage.setItem('access_token', data.access_token);
         localStorage.setItem('refresh_token', data.refresh_token);
 
