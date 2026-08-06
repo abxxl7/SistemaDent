@@ -7,6 +7,7 @@ import Pacientes from './pages/Pacientes';
 import Citas     from './pages/Citas';
 import Doctores  from './pages/Doctores';
 import Usuarios  from './pages/Usuarios';
+import HistorialClinico from './pages/HistorialClinico';
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
             <Route path="/citas"     element={<Citas />} />
             <Route path="/doctores"  element={<Doctores />} />
             <Route path="/usuarios"  element={<Usuarios />} />
+            <Route path="/pacientes/:pacienteId/historial" element={<HistorialClinico />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Plus, X, Search, Pencil, Lock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, X, Search, Pencil, Lock, ClipboardList } from 'lucide-react';
 import api from '../services/api';
+import { useAuth } from '../context/useAuth';
 import './Pacientes.css';
 
 const TIPOS_SANGRE = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -16,6 +18,9 @@ const emptyForm = {
 };
 
 export default function Pacientes() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const canViewHistorial = user?.rol === 'doctor' || user?.rol === 'admin';
   const [pacientes, setPacientes] = useState([]);
   const [form, setForm]           = useState(emptyForm);
   const [editId, setEditId]       = useState(null);
@@ -176,7 +181,14 @@ export default function Pacientes() {
                   </td>
                   <td>{p.email || '—'}</td>
                   <td>
-                    <button className="btn btn-ghost btn-sm" onClick={() => handleEdit(p)}><Pencil size={14} /> Editar</button>
+                    <div className="row-actions">
+                      <button className="btn btn-ghost btn-sm" onClick={() => handleEdit(p)}><Pencil size={14} /> Editar</button>
+                      {canViewHistorial && (
+                        <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/pacientes/${p.id}/historial`)}>
+                          <ClipboardList size={14} /> Ver historial
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

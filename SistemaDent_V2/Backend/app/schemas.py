@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional
 from datetime import date, time, datetime, timedelta
-from app.models import EstadoCita, RolUsuario, TipoSangre
+from app.models import EstadoCita, RolUsuario, TipoSangre, TipoArchivo
 
 # Horario laboral
 HORA_INICIO = time(8, 0)   # 08:00
@@ -134,6 +134,43 @@ class CitaOut(BaseModel):
     hora:        time
     estado:      EstadoCita
     notas:       Optional[str]
+
+    class Config:
+        from_attributes = True
+
+# ──────────────────────────────────────────────
+# HISTORIAL CLÍNICO
+# ──────────────────────────────────────────────
+class ArchivoClinicoOut(BaseModel):
+    id:             int
+    historial_id:   int
+    nombre_archivo: str
+    ruta_archivo:   str
+    tipo:           TipoArchivo
+    fecha_subida:   datetime
+
+    class Config:
+        from_attributes = True
+
+class HistorialClinicoCreate(BaseModel):
+    paciente_id: int
+    doctor_id:   int
+    cita_id:     Optional[int] = None
+    fecha:       date
+    diagnostico: str = Field(min_length=1)
+    tratamiento: str = Field(min_length=1)
+    notas:       Optional[str] = None
+
+class HistorialClinicoOut(BaseModel):
+    id:          int
+    paciente_id: int
+    doctor_id:   int
+    cita_id:     Optional[int]
+    fecha:       date
+    diagnostico: str
+    tratamiento: str
+    notas:       Optional[str]
+    archivos:    list[ArchivoClinicoOut] = []
 
     class Config:
         from_attributes = True

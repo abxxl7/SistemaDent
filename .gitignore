@@ -4,6 +4,7 @@ SistemaDent_V1/Backend/venv/
 SistemaDent_V1/Backend/.env
 SistemaDent_V2/Backend/venv/
 SistemaDent_V2/Backend/.env
+SistemaDent_V2/Backend/uploads/
 
 # Frontend
 SistemaDent_V1/Frontend/node_modules/
