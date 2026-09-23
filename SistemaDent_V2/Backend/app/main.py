@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.database import engine, Base
 from app.routers import pacientes, doctores, citas, usuarios, historial
 
-Base.metadata.create_all(bind=engine)
+# El esquema de la base de datos ahora lo maneja Alembic (carpeta alembic/),
+# no la app al arrancar. Ver Backend/alembic para las migraciones.
 
 app = FastAPI(
     title="SistemaDent API",
