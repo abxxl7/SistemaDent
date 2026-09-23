@@ -103,6 +103,14 @@ class DoctorOut(DoctorCreate):
 # CITA
 # V2: Todos los campos obligatorios + validaciones
 # ──────────────────────────────────────────────
+def _validar_slot(v: time) -> time:
+    if v not in SLOTS_VALIDOS:
+        horarios = ', '.join(t.strftime('%H:%M') for t in SLOTS_VALIDOS)
+        raise ValueError(
+            f'La hora debe coincidir con uno de los turnos disponibles de {DURACION_TURNO_MIN} minutos: {horarios}'
+        )
+    return v
+
 class CitaCreate(BaseModel):
     paciente_id: int
     doctor_id:   int
@@ -113,12 +121,7 @@ class CitaCreate(BaseModel):
     @field_validator('hora')
     @classmethod
     def validar_slot_horario(cls, v):
-        if v not in SLOTS_VALIDOS:
-            horarios = ', '.join(t.strftime('%H:%M') for t in SLOTS_VALIDOS)
-            raise ValueError(
-                f'La hora debe coincidir con uno de los turnos disponibles de {DURACION_TURNO_MIN} minutos: {horarios}'
-            )
-        return v
+        return _validar_slot(v)
 
 class CitaUpdate(BaseModel):
     # V2: Solo permite cambiar estado y notas
@@ -137,6 +140,46 @@ class CitaOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+# ──────────────────────────────────────────────
+# APP PACIENTES (móvil)
+# ──────────────────────────────────────────────
+class PacienteRegistro(BaseModel):
+    documento: str = Field(min_length=1)
+    nombre:    str = Field(min_length=1)
+    telefono:  str = Field(min_length=1)
+    email:     Optional[EmailStr] = None
+    password:  str = Field(min_length=6, max_length=72)
+
+class PacienteLoginApp(BaseModel):
+    documento: str = Field(min_length=1)
+    password:  str
+
+class DoctorAppOut(BaseModel):
+    id:           int
+    nombre:       str
+    especialidad: str
+
+    class Config:
+        from_attributes = True
+
+class DisponibilidadOut(BaseModel):
+    doctor_id:         int
+    fecha:             date
+    slots:             list[time]
+    limite_alcanzado:  bool
+
+class CitaCreateApp(BaseModel):
+    # Sin paciente_id: siempre se toma del token; si el body lo trae, se ignora
+    doctor_id: int
+    fecha:     date
+    hora:      time
+    notas:     Optional[str] = None
+
+    @field_validator('hora')
+    @classmethod
+    def validar_slot_horario(cls, v):
+        return _validar_slot(v)
 
 # ──────────────────────────────────────────────
 # HISTORIAL CLÍNICO

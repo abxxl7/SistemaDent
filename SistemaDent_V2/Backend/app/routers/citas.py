@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from datetime import time
+from datetime import date, time
 from app.database import get_db
 from app import models, schemas
 from app.auth import get_current_user
@@ -13,27 +13,38 @@ LIMITE_CITAS_POR_DIA = 9
 HORA_INICIO = time(8, 0)
 HORA_FIN    = time(18, 0)
 
-@router.post("/", response_model=schemas.CitaOut, status_code=201)
-def crear_cita(
-    data: schemas.CitaCreate,
-    db: Session = Depends(get_db),
-    _: models.Usuario = Depends(get_current_user)
-):
+def validar_fecha_agendable(fecha: date) -> None:
+    if fecha < date.today():
+        raise HTTPException(status_code=400, detail="No se pueden agendar citas en fechas pasadas")
+    if fecha.weekday() >= 5:
+        raise HTTPException(status_code=400, detail="No se agendan citas los fines de semana")
+
+def crear_cita_validada(
+    db: Session,
+    paciente_id: int,
+    doctor_id: int,
+    fecha: date,
+    hora: time,
+    notas: str | None = None
+) -> models.Cita:
+    """Lógica de negocio única para crear citas; la usan staff (/citas) y pacientes (/app/citas)."""
     # V2 FIX 1: Validar horario laboral (también validado en schema)
-    if data.hora < HORA_INICIO or data.hora >= HORA_FIN:
+    if hora < HORA_INICIO or hora >= HORA_FIN:
         raise HTTPException(
             status_code=400,
             detail="La cita debe agendarse dentro del horario laboral (08:00 - 18:00)"
         )
 
+    validar_fecha_agendable(fecha)
+
     # V2 FIX 2: Validar que el paciente existe
-    paciente = db.query(models.Paciente).filter(models.Paciente.id == data.paciente_id).first()
+    paciente = db.query(models.Paciente).filter(models.Paciente.id == paciente_id).first()
     if not paciente:
         raise HTTPException(status_code=404, detail="Paciente no encontrado")
 
     # V2 FIX 3: Validar que el doctor existe y está activo
     doctor = db.query(models.Doctor).filter(
-        models.Doctor.id == data.doctor_id,
+        models.Doctor.id == doctor_id,
         models.Doctor.activo == True
     ).first()
     if not doctor:
@@ -41,42 +52,53 @@ def crear_cita(
 
     # V2 FIX 4: Validar conflicto de horario
     conflicto = db.query(models.Cita).filter(
-        models.Cita.doctor_id == data.doctor_id,
-        models.Cita.fecha     == data.fecha,
-        models.Cita.hora      == data.hora,
+        models.Cita.doctor_id == doctor_id,
+        models.Cita.fecha     == fecha,
+        models.Cita.hora      == hora,
         models.Cita.estado    != models.EstadoCita.cancelada
     ).first()
     if conflicto:
         raise HTTPException(
             status_code=400,
-            detail=f"El doctor ya tiene una cita asignada el {data.fecha} a las {data.hora}. Por favor seleccioná otro horario."
+            detail=f"El doctor ya tiene una cita asignada el {fecha} a las {hora}. Por favor seleccioná otro horario."
         )
 
     # V2 FIX 5: Validar límite máximo de citas por doctor por día
     total_citas_dia = db.query(func.count(models.Cita.id)).filter(
-        models.Cita.doctor_id == data.doctor_id,
-        models.Cita.fecha     == data.fecha,
+        models.Cita.doctor_id == doctor_id,
+        models.Cita.fecha     == fecha,
         models.Cita.estado    != models.EstadoCita.cancelada
     ).scalar()
 
     if total_citas_dia >= LIMITE_CITAS_POR_DIA:
         raise HTTPException(
             status_code=400,
-            detail=f"El doctor ya alcanzó el límite máximo de {LIMITE_CITAS_POR_DIA} citas para el {data.fecha}."
+            detail=f"El doctor ya alcanzó el límite máximo de {LIMITE_CITAS_POR_DIA} citas para el {fecha}."
         )
 
+    # TODO (mejora futura): la verificación de conflicto y la inserción no son atómicas; dos
+    # reservas simultáneas al mismo slot pueden pasar ambas. Solución: índice único parcial
+    # en (doctor_id, fecha, hora) WHERE estado != 'cancelada' + manejar IntegrityError.
     cita = models.Cita(
-        paciente_id=data.paciente_id,
-        doctor_id=data.doctor_id,
-        fecha=data.fecha,
-        hora=data.hora,
-        notas=data.notas,
+        paciente_id=paciente_id,
+        doctor_id=doctor_id,
+        fecha=fecha,
+        hora=hora,
+        notas=notas,
         estado=models.EstadoCita.pendiente
     )
     db.add(cita)
     db.commit()
     db.refresh(cita)
     return cita
+
+@router.post("/", response_model=schemas.CitaOut, status_code=201)
+def crear_cita(
+    data: schemas.CitaCreate,
+    db: Session = Depends(get_db),
+    _: models.Usuario = Depends(get_current_user)
+):
+    return crear_cita_validada(db, data.paciente_id, data.doctor_id, data.fecha, data.hora, data.notas)
 
 @router.get("/", response_model=list[schemas.CitaOut])
 def listar_citas(

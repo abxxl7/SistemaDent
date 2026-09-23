@@ -55,6 +55,8 @@ class Paciente(Base):
     # V2: Nuevos campos
     direccion      = Column(String(255), nullable=True)
     tipo_sangre    = Column(Enum(TipoSangre), nullable=True)
+    # NULL = paciente sin cuenta en la app móvil (creado por recepción)
+    password_hash  = Column(String(255), nullable=True)
 
     citas = relationship("Cita", back_populates="paciente")
     historiales = relationship("HistorialClinico", back_populates="paciente")

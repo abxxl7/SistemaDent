@@ -82,6 +82,67 @@ def get_current_user(
         raise credentials_exception
     return user
 
+AUD_PACIENTE = "paciente"
+oauth2_scheme_paciente = OAuth2PasswordBearer(tokenUrl="/app/login")
+
+def create_paciente_access_token(data: dict) -> str:
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=EXPIRE_MIN)
+    to_encode.update({"exp": expire, "type": "access", "aud": AUD_PACIENTE})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def create_paciente_refresh_token(data: dict) -> str:
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(days=REFRESH_EXPIRE_DAYS)
+    to_encode.update({"exp": expire, "type": "refresh", "aud": AUD_PACIENTE})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def decode_paciente_refresh_token(token: str) -> str:
+    """Decodifica un refresh token de paciente y devuelve su documento."""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], audience=AUD_PACIENTE)
+        if payload.get("type") != "refresh" or payload.get("aud") != AUD_PACIENTE:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token inválido: se esperaba un refresh token de paciente"
+            )
+        documento: str = payload.get("sub")
+        if not documento:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token inválido: sin sujeto"
+            )
+        return documento
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token inválido o expirado"
+        )
+
+def get_current_paciente(
+    token: str = Depends(oauth2_scheme_paciente),
+    db: Session = Depends(get_db)
+) -> models.Paciente:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="No se pudo validar las credenciales",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], audience=AUD_PACIENTE)
+        if payload.get("type") != "access" or payload.get("aud") != AUD_PACIENTE:
+            raise credentials_exception
+        documento: str = payload.get("sub")
+        if documento is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    paciente = db.query(models.Paciente).filter(models.Paciente.documento == documento).first()
+    if paciente is None:
+        raise credentials_exception
+    return paciente
+
 def require_roles(*roles):
     def role_checker(current_user: models.Usuario = Depends(get_current_user)):
         if current_user.rol not in roles:

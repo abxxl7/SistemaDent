@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import pacientes, doctores, citas, usuarios, historial
+from app.routers import pacientes, doctores, citas, usuarios, historial, app_pacientes
 
 # El esquema de la base de datos ahora lo maneja Alembic (carpeta alembic/),
 # no la app al arrancar. Ver Backend/alembic para las migraciones.
@@ -27,6 +27,7 @@ app.include_router(pacientes.router)
 app.include_router(doctores.router)
 app.include_router(citas.router)
 app.include_router(historial.router)
+app.include_router(app_pacientes.router)
 
 @app.get("/")
 def root():
