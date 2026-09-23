@@ -41,6 +41,8 @@ def registro(data: schemas.PacienteRegistro, db: Session = Depends(get_db)):
             nombre=data.nombre,
             telefono=data.telefono,
             email=data.email,
+            direccion=data.direccion,
+            tipo_sangre=data.tipo_sangre,
             fecha_registro=date.today(),
             password_hash=hash_password(data.password),
         )
@@ -121,14 +123,24 @@ def crear_cita(
 ):
     return crear_cita_validada(db, paciente.id, data.doctor_id, data.fecha, data.hora, data.notas)
 
-@router.get("/mis-citas", response_model=list[schemas.CitaOut])
+@router.get("/mis-citas", response_model=list[schemas.CitaAppOut])
 def mis_citas(
     db: Session = Depends(get_db),
     paciente: models.Paciente = Depends(get_current_paciente)
 ):
-    return (
-        db.query(models.Cita)
+    # Join sin filtrar por Doctor.activo: las citas de doctores inactivos conservan su nombre
+    filas = (
+        db.query(models.Cita, models.Doctor.nombre)
+        .join(models.Doctor, models.Doctor.id == models.Cita.doctor_id)
         .filter(models.Cita.paciente_id == paciente.id)
         .order_by(models.Cita.fecha.desc(), models.Cita.hora.desc())
         .all()
     )
+    return [
+        {
+            "id": c.id, "paciente_id": c.paciente_id, "doctor_id": c.doctor_id,
+            "doctor_nombre": nombre, "fecha": c.fecha, "hora": c.hora,
+            "estado": c.estado, "notas": c.notas,
+        }
+        for c, nombre in filas
+    ]

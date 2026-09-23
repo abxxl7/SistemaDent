@@ -149,6 +149,8 @@ class PacienteRegistro(BaseModel):
     nombre:    str = Field(min_length=1)
     telefono:  str = Field(min_length=1)
     email:     Optional[EmailStr] = None
+    direccion:   Optional[str] = None
+    tipo_sangre: Optional[TipoSangre] = None
     password:  str = Field(min_length=6, max_length=72)
 
 class PacienteLoginApp(BaseModel):
@@ -168,6 +170,19 @@ class DisponibilidadOut(BaseModel):
     fecha:             date
     slots:             list[time]
     limite_alcanzado:  bool
+
+class CitaAppOut(BaseModel):
+    id:            int
+    paciente_id:   int
+    doctor_id:     int
+    doctor_nombre: str
+    fecha:         date
+    hora:          time
+    estado:        EstadoCita
+    notas:         Optional[str]
+
+    class Config:
+        from_attributes = True
 
 class CitaCreateApp(BaseModel):
     # Sin paciente_id: siempre se toma del token; si el body lo trae, se ignora

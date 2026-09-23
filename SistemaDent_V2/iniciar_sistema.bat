@@ -9,7 +9,7 @@ echo.
 set "BASE_DIR=%~dp0"
 
 echo [1/2] Iniciando Backend (puerto 8001)...
-start "SistemaDent V2 - Backend" cmd /k "cd /d "%BASE_DIR%Backend" && call venv\Scripts\activate && uvicorn app.main:app --reload --port 8001"
+start "SistemaDent V2 - Backend" cmd /k "cd /d "%BASE_DIR%Backend" && call venv\Scripts\activate && uvicorn app.main:app --reload --host 0.0.0.0 --port 8001"
 
 echo [2/2] Iniciando Frontend (puerto 5174)...
 start "SistemaDent V2 - Frontend" cmd /k "cd /d "%BASE_DIR%Frontend" && npm run dev"

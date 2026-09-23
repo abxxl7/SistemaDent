@@ -11,6 +11,12 @@ SistemaDent_V1/Frontend/node_modules/
 SistemaDent_V2/Frontend/node_modules/
 SistemaDent_V2/Frontend/.env.local
 
+# MobileApp (la IP del .env cambia según la red de cada persona)
+SistemaDent_V2/MobileApp/node_modules/
+SistemaDent_V2/MobileApp/.expo/
+SistemaDent_V2/MobileApp/.env
+SistemaDent_V2/MobileApp/.env.local
+
 # Python
 __pycache__/
 *.pyc
