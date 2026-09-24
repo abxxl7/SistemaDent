@@ -1,15 +1,13 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, KeyboardAvoidingView, Platform, Pressable, StyleSheet } from 'react-native';
+import { Text, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { useAuth } from '../context/useAuth';
 import { parseError } from '../services/errors';
-import { colors, fonts, radius, spacing, type, MIN_TOUCH } from '../theme/theme';
+import { EMAIL_RE, validarPassword } from '../utils/validaciones';
+import { colors, spacing, type } from '../theme/theme';
 import TextField from '../components/TextField';
+import TipoSangreSelector from '../components/TipoSangreSelector';
 import Button from '../components/Button';
 import Banner from '../components/Banner';
-
-// Valores exactos del enum TipoSangre del backend
-const TIPOS_SANGRE = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function RegistroScreen({ navigation }) {
   const { registro } = useAuth();
@@ -30,8 +28,8 @@ export default function RegistroScreen({ navigation }) {
     if (!form.nombre.trim()) e.nombre = 'Ingresá tu nombre completo';
     if (!form.telefono.trim()) e.telefono = 'Ingresá un teléfono de contacto';
     if (form.email.trim() && !EMAIL_RE.test(form.email.trim())) e.email = 'El email no parece válido';
-    if (form.password.length < 6) e.password = 'La contraseña debe tener al menos 6 caracteres';
-    else if (form.password.length > 72) e.password = 'La contraseña no puede superar los 72 caracteres';
+    const errPassword = validarPassword(form.password);
+    if (errPassword) e.password = errPassword;
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -79,26 +77,7 @@ export default function RegistroScreen({ navigation }) {
         <TextField label="Dirección (opcional)" value={form.direccion} onChangeText={set('direccion')}
           placeholder="Calle y barrio" autoCapitalize="sentences" />
 
-        <View style={styles.sangre}>
-          <Text style={type.label}>Tipo de sangre (opcional)</Text>
-          <View style={styles.chips}>
-            {TIPOS_SANGRE.map((t) => {
-              const activo = tipoSangre === t;
-              return (
-                <Pressable
-                  key={t}
-                  onPress={() => setTipoSangre(activo ? null : t)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: activo }}
-                  accessibilityLabel={`Tipo de sangre ${t}`}
-                  style={({ pressed }) => [styles.chip, activo && styles.chipActivo, pressed && styles.chipPressed]}
-                >
-                  <Text style={[styles.chipText, activo && styles.chipTextActivo]}>{t}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
+        <TipoSangreSelector value={tipoSangre} onChange={setTipoSangre} />
 
         <TextField label="Contraseña" value={form.password} onChangeText={set('password')} error={errors.password}
           hint="Entre 6 y 72 caracteres" placeholder="Elegí una contraseña" secure autoCapitalize="none"
@@ -113,21 +92,5 @@ export default function RegistroScreen({ navigation }) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   form: { padding: spacing.xl, gap: spacing.lg },
-  sangre: { gap: spacing.sm },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  chip: {
-    width: '22.5%',
-    minHeight: MIN_TOUCH,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  chipActivo: { backgroundColor: colors.primary, borderColor: colors.primary },
-  chipPressed: { opacity: 0.85, transform: [{ scale: 0.97 }] },
-  chipText: { fontFamily: fonts.semibold, fontSize: 16, color: colors.text },
-  chipTextActivo: { color: '#FFFFFF' },
   submit: { marginTop: spacing.sm },
 });

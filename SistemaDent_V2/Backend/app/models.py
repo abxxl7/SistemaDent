@@ -61,6 +61,10 @@ class Paciente(Base):
     citas = relationship("Cita", back_populates="paciente")
     historiales = relationship("HistorialClinico", back_populates="paciente")
 
+    @property
+    def tiene_cuenta(self) -> bool:
+        return self.password_hash is not None
+
 class Doctor(Base):
     __tablename__ = "doctores"
 

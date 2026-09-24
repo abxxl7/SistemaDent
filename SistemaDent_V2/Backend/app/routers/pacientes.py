@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models, schemas
-from app.auth import get_current_user
+from app.auth import get_current_user, require_roles
 
 router = APIRouter(prefix="/pacientes", tags=["Pacientes"])
 
@@ -58,6 +58,26 @@ def actualizar_paciente(
     db.commit()
     db.refresh(paciente)
     return paciente
+
+# TODO (mejoras futuras):
+# - El reset no revoca sesiones abiertas: el access token vale hasta expirar y un refresh token
+#   emitido antes del reset vuelve a funcionar cuando el paciente reactiva la cuenta. Requiere una
+#   versión de token (columna + migración) validada en los tokens de paciente.
+# - Tras el reset, quien conozca el documento puede activar la cuenta desde la app (ver TODO en
+#   POST /app/registro): falta un código de activación o verificación por teléfono/email.
+@router.put("/{paciente_id}/resetear-password")
+def resetear_password(
+    paciente_id: int,
+    db: Session = Depends(get_db),
+    _: models.Usuario = Depends(require_roles("admin", "recepcionista"))
+):
+    paciente = db.query(models.Paciente).filter(models.Paciente.id == paciente_id).first()
+    if not paciente:
+        raise HTTPException(status_code=404, detail="Paciente no encontrado")
+
+    paciente.password_hash = None
+    db.commit()
+    return {"detail": "Acceso reseteado. El paciente puede reactivar su cuenta desde la app con su documento."}
 
 # V2: No existe endpoint DELETE para pacientes
 # Se preserva el historial médico completo

@@ -80,6 +80,7 @@ class PacienteOut(BaseModel):
     fecha_registro: date
     direccion:      Optional[str]
     tipo_sangre:    Optional[TipoSangre]
+    tiene_cuenta:   bool
 
     class Config:
         from_attributes = True
@@ -156,6 +157,28 @@ class PacienteRegistro(BaseModel):
 class PacienteLoginApp(BaseModel):
     documento: str = Field(min_length=1)
     password:  str
+
+class PerfilOut(BaseModel):
+    documento:   str
+    nombre:      str
+    telefono:    str
+    email:       Optional[str]
+    direccion:   Optional[str]
+    tipo_sangre: Optional[TipoSangre]
+
+    class Config:
+        from_attributes = True
+
+class PerfilUpdate(BaseModel):
+    # documento y nombre son inmutables desde la app
+    telefono:    str = Field(min_length=1)
+    email:       Optional[EmailStr] = None
+    direccion:   Optional[str] = None
+    tipo_sangre: Optional[TipoSangre] = None
+
+class CambiarPasswordApp(BaseModel):
+    password_actual: str
+    password_nueva:  str = Field(min_length=6, max_length=72)
 
 class DoctorAppOut(BaseModel):
     id:           int

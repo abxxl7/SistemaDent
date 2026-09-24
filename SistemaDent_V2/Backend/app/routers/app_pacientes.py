@@ -78,6 +78,36 @@ def refresh(data: schemas.RefreshTokenSchema, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Paciente no encontrado o sin cuenta activa")
     return _tokens(paciente)
 
+@router.get("/perfil", response_model=schemas.PerfilOut)
+def obtener_perfil(paciente: models.Paciente = Depends(get_current_paciente)):
+    return paciente
+
+@router.put("/perfil", response_model=schemas.PerfilOut)
+def actualizar_perfil(
+    data: schemas.PerfilUpdate,
+    db: Session = Depends(get_db),
+    paciente: models.Paciente = Depends(get_current_paciente)
+):
+    # Reemplaza los 4 campos editables (un opcional en null se borra); documento y nombre no se tocan
+    paciente.telefono = data.telefono
+    paciente.email = data.email
+    paciente.direccion = data.direccion
+    paciente.tipo_sangre = data.tipo_sangre
+    db.commit()
+    db.refresh(paciente)
+    return paciente
+
+@router.put("/perfil/password", status_code=204)
+def cambiar_password(
+    data: schemas.CambiarPasswordApp,
+    db: Session = Depends(get_db),
+    paciente: models.Paciente = Depends(get_current_paciente)
+):
+    if paciente.password_hash is None or not verify_password(data.password_actual, paciente.password_hash):
+        raise HTTPException(status_code=401, detail="La contraseña actual es incorrecta")
+    paciente.password_hash = hash_password(data.password_nueva)
+    db.commit()
+
 @router.get("/doctores", response_model=list[schemas.DoctorAppOut])
 def listar_doctores(
     db: Session = Depends(get_db),

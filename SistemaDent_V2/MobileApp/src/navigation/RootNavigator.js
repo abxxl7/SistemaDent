@@ -1,7 +1,7 @@
 import { View, ActivityIndicator, Pressable, Alert, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Stethoscope, CalendarDays, LogOut } from 'lucide-react-native';
+import { Stethoscope, CalendarDays, User, LogOut } from 'lucide-react-native';
 import { useAuth } from '../context/useAuth';
 import { colors, fonts } from '../theme/theme';
 import LoginScreen from '../screens/LoginScreen';
@@ -9,6 +9,7 @@ import RegistroScreen from '../screens/RegistroScreen';
 import DoctoresScreen from '../screens/DoctoresScreen';
 import DisponibilidadScreen from '../screens/DisponibilidadScreen';
 import MisCitasScreen from '../screens/MisCitasScreen';
+import PerfilScreen from '../screens/PerfilScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -66,6 +67,11 @@ function MainTabs() {
           title: 'Mis citas',
           tabBarIcon: ({ color, size }) => <CalendarDays size={size} color={color} strokeWidth={1.75} />,
         }}
+      />
+      <Tab.Screen
+        name="Perfil"
+        component={PerfilScreen}
+        options={{ tabBarIcon: ({ color, size }) => <User size={size} color={color} strokeWidth={1.75} /> }}
       />
     </Tab.Navigator>
   );

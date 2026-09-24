@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, X, Search, Pencil, Lock, ClipboardList } from 'lucide-react';
+import { Plus, X, Search, Pencil, Lock, ClipboardList, KeyRound } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/useAuth';
 import './Pacientes.css';
@@ -21,6 +21,7 @@ export default function Pacientes() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const canViewHistorial = user?.rol === 'doctor' || user?.rol === 'admin';
+  const canResetAcceso   = user?.rol === 'admin'  || user?.rol === 'recepcionista';
   const [pacientes, setPacientes] = useState([]);
   const [form, setForm]           = useState(emptyForm);
   const [editId, setEditId]       = useState(null);
@@ -73,6 +74,18 @@ export default function Pacientes() {
       tipo_sangre:    p.tipo_sangre  || '',
     });
     setEditId(p.id); setShowForm(true); setError(''); setSuccess('');
+  };
+
+  const handleResetAcceso = async p => {
+    if (!confirm(`¿Resetear el acceso de ${p.nombre}? Va a tener que volver a activar su cuenta desde la app con una contraseña nueva.`)) return;
+    setError(''); setSuccess('');
+    try {
+      const { data } = await api.put(`/pacientes/${p.id}/resetear-password`);
+      setSuccess(data.detail);
+      load();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Error al resetear el acceso del paciente.');
+    }
   };
 
   const filtered = pacientes.filter(p =>
@@ -186,6 +199,11 @@ export default function Pacientes() {
                       {canViewHistorial && (
                         <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/pacientes/${p.id}/historial`)}>
                           <ClipboardList size={14} /> Ver historial
+                        </button>
+                      )}
+                      {canResetAcceso && p.tiene_cuenta && (
+                        <button className="btn btn-ghost btn-sm" onClick={() => handleResetAcceso(p)}>
+                          <KeyRound size={14} /> Resetear acceso
                         </button>
                       )}
                     </div>
