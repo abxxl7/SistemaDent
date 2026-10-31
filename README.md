@@ -23,7 +23,6 @@ SistemaDent/
 │   ├── detener_sistema.bat
 │   └── actualizar_sistema.bat
 ├── SistemaDent_V1/       Versión anterior (no se documenta acá)
-├── DB_Backup/            Respaldos de PostgreSQL (.backup) de V1 y V2
 └── Documentacion/        Documentos del proyecto (.docx)
 ```
 
@@ -75,9 +74,8 @@ cd SistemaDent
 
 ### 2. Base de datos
 
-Creá una base de datos vacía en PostgreSQL. En `DB_Backup/SistemaV2/` hay dos respaldos: uno
-completo y uno vacío (según su nombre, con y sin datos); se restauran con pgAdmin (Restore) o
-`pg_restore`.
+Creá una base de datos vacía en PostgreSQL. Las tablas se crean con las migraciones de Alembic
+(ver más abajo); no hace falta restaurar ningún respaldo.
 
 ### 3. Backend
 
@@ -157,7 +155,7 @@ alembic current                           # muestra la revisión aplicada en la 
 ```
 
 - **Base nueva y vacía:** `alembic upgrade head`.
-- **Base que ya tenía las tablas** (por ejemplo, restaurada desde `DB_Backup`, creada antes de
+- **Base que ya tenía las tablas** (por ejemplo, restaurada desde un respaldo propio, creada antes de
   Alembic): la primera vez marcá solo el punto de partida con `alembic stamp 17625902e577`
   (la migración *baseline*, que está vacía) y después ejecutá `alembic upgrade head`. No uses
   `alembic stamp head`: marcaría también las migraciones posteriores como aplicadas sin
