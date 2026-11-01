@@ -1,11 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 from datetime import date, time
 from app.database import get_db
 from app import models, schemas
 from app.auth import get_current_user
-from app.models import TRANSICIONES_VALIDAS
+from app.excepciones import ReglaNegocioError, TransicionInvalidaError
+from app.reglas_cita import (
+    ValidadorCitas, ReglaHorarioLaboral, ReglaFechaNoPasada, ReglaDiaHabil,
+    ReglaPacienteExiste, ReglaDoctorActivo, ReglaSinConflictoHorario, ReglaLimiteDiario,
+)
 
 router = APIRouter(prefix="/citas", tags=["Citas"])
 
@@ -13,11 +16,14 @@ LIMITE_CITAS_POR_DIA = 9
 HORA_INICIO = time(8, 0)
 HORA_FIN    = time(18, 0)
 
+def _aplicar_reglas(validador: ValidadorCitas, db: Session | None, doctor_id: int | None, fecha: date, hora: time | None) -> None:
+    try:
+        validador.validar(db, doctor_id, fecha, hora)
+    except ReglaNegocioError as e:
+        raise HTTPException(status_code=e.codigo_http, detail=e.mensaje)
+
 def validar_fecha_agendable(fecha: date) -> None:
-    if fecha < date.today():
-        raise HTTPException(status_code=400, detail="No se pueden agendar citas en fechas pasadas")
-    if fecha.weekday() >= 5:
-        raise HTTPException(status_code=400, detail="No se agendan citas los fines de semana")
+    _aplicar_reglas(ValidadorCitas([ReglaFechaNoPasada(), ReglaDiaHabil()]), None, None, fecha, None)
 
 def crear_cita_validada(
     db: Session,
@@ -28,53 +34,17 @@ def crear_cita_validada(
     notas: str | None = None
 ) -> models.Cita:
     """Lógica de negocio única para crear citas; la usan staff (/citas) y pacientes (/app/citas)."""
-    # V2 FIX 1: Validar horario laboral (también validado en schema)
-    if hora < HORA_INICIO or hora >= HORA_FIN:
-        raise HTTPException(
-            status_code=400,
-            detail="La cita debe agendarse dentro del horario laboral (08:00 - 18:00)"
-        )
-
-    validar_fecha_agendable(fecha)
-
-    # V2 FIX 2: Validar que el paciente existe
-    paciente = db.query(models.Paciente).filter(models.Paciente.id == paciente_id).first()
-    if not paciente:
-        raise HTTPException(status_code=404, detail="Paciente no encontrado")
-
-    # V2 FIX 3: Validar que el doctor existe y está activo
-    doctor = db.query(models.Doctor).filter(
-        models.Doctor.id == doctor_id,
-        models.Doctor.activo == True
-    ).first()
-    if not doctor:
-        raise HTTPException(status_code=404, detail="Doctor no encontrado o inactivo")
-
-    # V2 FIX 4: Validar conflicto de horario
-    conflicto = db.query(models.Cita).filter(
-        models.Cita.doctor_id == doctor_id,
-        models.Cita.fecha     == fecha,
-        models.Cita.hora      == hora,
-        models.Cita.estado    != models.EstadoCita.cancelada
-    ).first()
-    if conflicto:
-        raise HTTPException(
-            status_code=400,
-            detail=f"El doctor ya tiene una cita asignada el {fecha} a las {hora}. Por favor seleccioná otro horario."
-        )
-
-    # V2 FIX 5: Validar límite máximo de citas por doctor por día
-    total_citas_dia = db.query(func.count(models.Cita.id)).filter(
-        models.Cita.doctor_id == doctor_id,
-        models.Cita.fecha     == fecha,
-        models.Cita.estado    != models.EstadoCita.cancelada
-    ).scalar()
-
-    if total_citas_dia >= LIMITE_CITAS_POR_DIA:
-        raise HTTPException(
-            status_code=400,
-            detail=f"El doctor ya alcanzó el límite máximo de {LIMITE_CITAS_POR_DIA} citas para el {fecha}."
-        )
+    # El orden de la lista es el orden en que se informan los errores
+    validador = ValidadorCitas([
+        ReglaHorarioLaboral(HORA_INICIO, HORA_FIN),
+        ReglaFechaNoPasada(),
+        ReglaDiaHabil(),
+        ReglaPacienteExiste(paciente_id),
+        ReglaDoctorActivo(),
+        ReglaSinConflictoHorario(),
+        ReglaLimiteDiario(LIMITE_CITAS_POR_DIA),
+    ])
+    _aplicar_reglas(validador, db, doctor_id, fecha, hora)
 
     # TODO (mejora futura): la verificación de conflicto y la inserción no son atómicas; dos
     # reservas simultáneas al mismo slot pueden pasar ambas. Solución: índice único parcial
@@ -131,14 +101,10 @@ def actualizar_cita(
 
     # V2 FIX 6: Validar transición de estado
     if data.estado is not None:
-        transiciones = TRANSICIONES_VALIDAS.get(cita.estado, [])
-        if data.estado not in transiciones:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Transición inválida: no se puede pasar de '{cita.estado}' a '{data.estado}'. "
-                       f"Transiciones permitidas: {[e.value for e in transiciones] or 'ninguna'}"
-            )
-        cita.estado = data.estado
+        try:
+            cita.cambiar_estado(data.estado)
+        except TransicionInvalidaError as e:
+            raise HTTPException(status_code=e.codigo_http, detail=e.mensaje)
 
     if data.notas is not None:
         cita.notas = data.notas

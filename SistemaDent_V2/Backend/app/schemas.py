@@ -133,7 +133,7 @@ class CitaCreateApp(CitaBase):
 
 class CitaUpdate(BaseModel):
     # V2: Solo permite cambiar estado y notas
-    # La validación de transición se hace en el router
+    # La validación de transición se hace en Cita.cambiar_estado.
     estado: Optional[EstadoCita] = None
     notas:  Optional[str] = None
 
