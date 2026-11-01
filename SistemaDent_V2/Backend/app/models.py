@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 from datetime import datetime
 import enum
+from app.excepciones import TransicionInvalidaError
 
 class RolUsuario(str, enum.Enum):
     admin         = "admin"
@@ -87,9 +88,17 @@ class Cita(Base):
     hora        = Column(Time, nullable=False)
     estado      = Column(Enum(EstadoCita), default=EstadoCita.pendiente)
     notas       = Column(Text, nullable=True)
-
     paciente = relationship("Paciente", back_populates="citas")
     doctor   = relationship("Doctor", back_populates="citas")
+
+    def cambiar_estado(self, nuevo_estado: EstadoCita) -> None:
+        transiciones = TRANSICIONES_VALIDAS.get(self.estado, [])
+        if nuevo_estado not in transiciones:
+            raise TransicionInvalidaError(
+                f"Transición inválida: no se puede pasar de '{self.estado.value}' a '{nuevo_estado.value}'. "
+                f"Transiciones permitidas: {[e.value for e in transiciones] or 'ninguna'}"
+            )
+        self.estado = nuevo_estado
 
 class TipoArchivo(str, enum.Enum):
     radiografia = "radiografia"

@@ -88,6 +88,32 @@ class ReglaLimiteDiario(ReglaCita):
                 f"El doctor ya alcanzó el límite máximo de {self.__limite} citas para el {fecha}."
             )
 
+class ReglaPacienteExiste(ReglaCita):
+    # validar() no recibe el paciente: se indica al construir la regla
+    def __init__(self, paciente_id: int):
+        super().__init__("Paciente existente")
+        self._paciente_id = paciente_id
+ 
+    def validar(self, db, doctor_id, fecha, hora):
+        paciente = db.query(models.Paciente).filter(
+            models.Paciente.id == self._paciente_id
+        ).first()
+        if not paciente:
+            raise PacienteNoEncontradoError("Paciente no encontrado")
+ 
+ 
+class ReglaDoctorActivo(ReglaCita):
+    def __init__(self):
+        super().__init__("Doctor activo")
+ 
+    def validar(self, db, doctor_id, fecha, hora):
+        doctor = db.query(models.Doctor).filter(
+            models.Doctor.id == doctor_id,
+            models.Doctor.activo == True
+        ).first()
+        if not doctor:
+            raise DoctorNoDisponibleError("Doctor no encontrado o inactivo")
+
 class ValidadorCitas:
     def __init__(self, reglas: list[ReglaCita]):
         self.__reglas = reglas

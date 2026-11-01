@@ -54,22 +54,22 @@ class RefreshTokenSchema(BaseModel):
 # PACIENTE
 # V2: Agrega dirección y tipo de sangre
 # ──────────────────────────────────────────────
-class PacienteCreate(BaseModel):
-    nombre:         str = Field(min_length=1)
-    documento:      str = Field(min_length=1)
-    telefono:       str = Field(min_length=1)
-    email:          Optional[EmailStr] = None
-    fecha_registro: date
-    direccion:      Optional[str] = None
-    tipo_sangre:    Optional[TipoSangre] = None
-
-class PacienteUpdate(BaseModel):
-    # V2: Sin eliminación — solo actualización de datos
-    nombre:      str = Field(min_length=1)
+class PacienteContactoBase(BaseModel):
     telefono:    str = Field(min_length=1)
     email:       Optional[EmailStr] = None
     direccion:   Optional[str] = None
     tipo_sangre: Optional[TipoSangre] = None
+ 
+class PacienteBase(PacienteContactoBase):
+    nombre: str = Field(min_length=1)
+ 
+class PacienteCreate(PacienteBase):
+    documento:      str = Field(min_length=1)
+    fecha_registro: date
+ 
+class PacienteUpdate(PacienteBase):
+    # V2: Sin eliminación — solo actualización de datos
+    pass
 
 class PacienteOut(BaseModel):
     id:             int
@@ -112,17 +112,24 @@ def _validar_slot(v: time) -> time:
         )
     return v
 
-class CitaCreate(BaseModel):
-    paciente_id: int
-    doctor_id:   int
-    fecha:       date
-    hora:        time
-    notas:       Optional[str] = None
-
+class CitaBase(BaseModel):
+    # Solo para entrada: CitaOut no la hereda
+    doctor_id: int
+    fecha:     date
+    hora:      time
+    notas:     Optional[str] = None
+ 
     @field_validator('hora')
     @classmethod
     def validar_slot_horario(cls, v):
         return _validar_slot(v)
+
+class CitaCreate(CitaBase):
+    paciente_id: int
+
+class CitaCreateApp(CitaBase):
+    # Sin paciente_id: siempre se toma del token; si el body lo trae, se ignora
+    pass
 
 class CitaUpdate(BaseModel):
     # V2: Solo permite cambiar estado y notas
@@ -145,13 +152,8 @@ class CitaOut(BaseModel):
 # ──────────────────────────────────────────────
 # APP PACIENTES (móvil)
 # ──────────────────────────────────────────────
-class PacienteRegistro(BaseModel):
+class PacienteRegistro(PacienteBase):
     documento: str = Field(min_length=1)
-    nombre:    str = Field(min_length=1)
-    telefono:  str = Field(min_length=1)
-    email:     Optional[EmailStr] = None
-    direccion:   Optional[str] = None
-    tipo_sangre: Optional[TipoSangre] = None
     password:  str = Field(min_length=6, max_length=72)
 
 class PacienteLoginApp(BaseModel):
@@ -169,12 +171,9 @@ class PerfilOut(BaseModel):
     class Config:
         from_attributes = True
 
-class PerfilUpdate(BaseModel):
+class PerfilUpdate(PacienteContactoBase):
     # documento y nombre son inmutables desde la app
-    telefono:    str = Field(min_length=1)
-    email:       Optional[EmailStr] = None
-    direccion:   Optional[str] = None
-    tipo_sangre: Optional[TipoSangre] = None
+    pass
 
 class CambiarPasswordApp(BaseModel):
     password_actual: str
@@ -206,18 +205,6 @@ class CitaAppOut(BaseModel):
 
     class Config:
         from_attributes = True
-
-class CitaCreateApp(BaseModel):
-    # Sin paciente_id: siempre se toma del token; si el body lo trae, se ignora
-    doctor_id: int
-    fecha:     date
-    hora:      time
-    notas:     Optional[str] = None
-
-    @field_validator('hora')
-    @classmethod
-    def validar_slot_horario(cls, v):
-        return _validar_slot(v)
 
 # ──────────────────────────────────────────────
 # HISTORIAL CLÍNICO
